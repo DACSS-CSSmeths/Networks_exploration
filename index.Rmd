@@ -1,0 +1,319 @@
+<br>
+
+<center><img src="https://github.com/DACSS-CSSmeths/guidelines/blob/main/pics/small_logo_ccs_meths.jpg?raw=true" width="700"/></center>
+
+# Network Exploration in R
+
+The [previous tutorial](https://dacss-cssmeths.github.io/Networks_intro/) we learned to prepare a network from a bipartite structure.
+
+This is the link to that network from a GitHub repo:
+
+```{r, eval=TRUE, message=FALSE}
+rm(list = ls())
+GitLink='https://github.com/DACSS-CSSmeths/Networks_intro/raw/refs/heads/main/MyGraphs/css_bP.graphml'
+```
+
+The library **igraph** will be needed to open this file in R:
+
+```{r, message=FALSE}
+library(igraph)
+actors=read_graph(GitLink,format='graphml')
+```
+
+The **actors** object has the network data, let's get some information:
+
+```{r}
+summary(actors)
+```
+
+The above results mean:
+
+-   **UN**:Undirected
+-   **W**:weighted
+-   **11**:nodes
+-   **14**:edges
+
+You also see the attributes for nodes (**v**ertices): \* (v/n) is a **n**umeric attribute for the nodes, here *wonOscar* and *bipartite*. \* (v/c) is a **c**haracter or string attribute for the nodes, here *id*.
+
+Let's see one of them:
+
+```{r}
+V(actors)$wonOscar
+```
+
+You also see the attributes for **e**dges: \* (e/n) is a **n**umeric attribute for the edges, here *weight*.
+
+Let's see that one too:
+
+```{r}
+E(actors)$weight
+```
+
+If you do not see the attribute **name** in the nodes (as it is the case here), it will help creating it so you see actual names instead of the *node number*:
+
+```{r}
+V(actors)$name=V(actors)$id
+```
+
+Let's draw the network:
+
+```{r, eval=TRUE, message=FALSE}
+set.seed(111) # use this to get same results as me
+
+plot.igraph(actors)
+```
+
+Let's use the attributes to change the look:
+
+```{r}
+set.seed(111) # use this to get same results as me
+
+plot.igraph(actors,
+            edge.color = E(actors)$weight,
+            edge.heigth = E(actors)$weight,
+            vertex.color=V(actors)$wonOscar)
+
+            
+```
+
+Notice that the colors and heigth were chosen from the own R defaults.
+
+## 1. Exploring the Network as a whole
+
+There are several measures of a network:
+
+-   Connectedness: Can any two nodes reach each other (is there a path between them):
+
+```{r, eval=TRUE, message=FALSE}
+is_connected(actors)
+```
+
+Then, there is a way for one actor to meet another, because they have some other actors that can help introduce each other. If network is not connected, there will an actor that is not reachable by another. See the image below:
+
+<center><img src="https://github.com/DACSS-CSSmeths/Networks_exploration/blob/main/images/connected_andnot.jpg?raw=true" width="700"/></center>
+
+[image source](https://walkenho.github.io/graph-theory-and-networkX-part2/)
+
+-   Density: from 0 to 1. A value of 1 means we have a 'complete' network, that is, every node is connected by **one** link.
+
+<center><img src="https://cdn.fs.guides.co/PDn0ImTfSb6QwgIvdoQ8" width="500"/></center>
+
+[image source](https://guides.co/g/the-network-effects-bible/121720)
+
+```{r, eval=TRUE, message=FALSE}
+edge_density(actors)
+```
+
+On average, any actor is connected to the 3 of the total (25% of 11 is 2.75). There are actors that are far from each other.
+
+-   Diameter (only computable for connected networks): A node can reach another following a path ( one or more egdes). The *geodesic* is the shorthest path between a pair nodes. Then, the diameter, is the maximum geodesic in a network. 
+
+
+```{r, eval=TRUE, message=FALSE}
+diameter(actors)
+```
+
+Then, the pair of actors who are more distant among the group requires the help of 5 people (go through  6 edges) to reach each other.
+
+We can actually find out the nodes whose geodesic represent the diameter.
+
+```{r}
+farthest_vertices(actors)
+```
+
+This is the geodesic between both nodes:
+
+```{r}
+get_diameter(actors)
+```
+
+You can see that here:
+
+```{r, eval=TRUE, message=FALSE, fig.heigth=12, fig.width=10}
+set.seed(111)
+
+# first the same color
+diameterColor <- rep("black", ecount(actors))
+
+# now change color if in the Diameter
+diameterColor[E(actors, path=get_diameter(actors))] = "red" 
+
+plot.igraph(actors,
+            edge.color = diameterColor,
+            )
+```
+
+-   Shortest path (average): it gets the average of every shortest path among the nodes in the network.
+
+```{r, eval=TRUE, message=FALSE}
+mean_distance(actors)
+```
+
+-   Transitivity: How probable is that two vertices with a common vertex, are also connected?
+
+```{r, eval=TRUE, message=FALSE}
+transitivity(actors)
+```
+
+-   Assortativity (degree): it is a measure to see if nodes are connecting to other nodes similar in degree. Closer to 1 means higher assortativity, closer to -1 diassortativity; while 0 is no assortitivity.
+
+```{r, eval=TRUE, message=FALSE}
+assortativity_degree(actors)
+```
+
+Then, there is no tendency for actors with many connections to connect with other actor with many connections. In fact, there is a very small tendency to connect among node with opposite levels of degree.
+
+Let's turn our attention to the nodes and their roles in the network.
+
+_______________________
+
+
+## 2. Exploration of network actors
+
+Let's focus on the relevance, or *centrality* of the vertices we have.
+
+a.  The **degree** of a vertex will tell you about the amount of connections of each node. A node with degree centrality of ONE (1) means that is connected to every other node.
+
+```{r}
+sort(degree(actors,normalized=T))
+```
+
+DiCaprio is the most connected among them, but is not far from four other actors.
+
+```{r, fig.heigth=12, fig.width=10}
+set.seed(123)
+
+TheV=c('Leonardo DiCaprio') # the one to highlight
+
+# the neoghbors
+neigh.nodes <- neighbors(actors, TheV)
+
+# all vertices same color
+vcol <- rep("grey80", vcount(actors))
+
+# color for neighbors
+vcol[neigh.nodes] <- "orange"
+
+# color for TheV
+vcol[V(actors)$name%in%TheV] <- "red"
+
+
+plot(actors, vertex.color=vcol,layout=layout_in_circle)
+```
+
+b.  The **closeness** of a vertex will tell you how close a vertex is to every other vertex. A vertex with high closeness can share information faster than the rest.
+
+```{r}
+sort(closeness(actors,normalized=T))
+```
+
+```{r, fig.heigth=12, fig.width=10}
+set.seed(123)
+TheV=c('Tom Hanks')
+neigh.nodes <- neighbors(actors, TheV)
+vcol <- rep("grey80", vcount(actors))
+vcol[neigh.nodes] <- "orange"
+vcol[V(actors)$name%in%TheV] <- "red"
+
+plot(actors, vertex.color=vcol)
+```
+
+c.  The **betweeness** of a vertex will tell you how critical a vertex is to connect vertices that are not connected directly.
+
+```{r}
+sort(betweenness(actors,normalized=T))
+```
+
+d.  The **eigenvector** of a vertex will tell you how 'elitist' a vertex is; that is, the higher this value means a highly connected vertex is connected to other highly connected vertices.
+
+```{r}
+sort(eigen_centrality (actors,scale=F)$vector)
+```
+
+```{r, fig.heigth=12, fig.width=10}
+set.seed(123)
+TheV=c('Al Pacino', 'Robert De Niro')
+neigh.nodes <- neighbors(actors, V(actors)[name%in%TheV])
+# Set colors to plot the neighbors:
+vcol <- rep("grey80", vcount(actors))
+vcol[neigh.nodes] <- "orange"
+vcol[V(actors)$name%in%TheV] <- "red"
+
+
+plot(actors, vertex.color=vcol,layout=layout.fruchterman.reingold)
+```
+
+Let me get all these centrality indexes into a dataframe:
+
+```{r, eval=TRUE, message=FALSE}
+rounding=2
+degr=round(degree(actors,normalized=T),rounding)
+close=round(closeness(actors,normalized=T),rounding)
+betw=round(betweenness(actors,normalized=T),rounding)
+eigv=round(eigen_centrality (actors,scale=F)$vector,rounding)
+
+DFCentrality=as.data.frame(cbind(degr,close,betw,eigv),stringsAsFactors = F)
+names(DFCentrality)=c('Degree','Closeness','Betweenness','Eigenvector')
+```
+
+```{r, eval=TRUE, message=FALSE}
+DFCentrality$person=row.names(DFCentrality)
+row.names(DFCentrality)=NULL
+head(DFCentrality)
+```
+
+```{r, eval=TRUE, message=FALSE, fig.heigth=12, fig.width=10}
+library(ggplot2)
+library(ggrepel)
+ggplot(DFCentrality, aes(x=Betweenness, y=Closeness)) + 
+    theme_classic() + geom_point(aes(size=log(1+Degree))) +
+    geom_text_repel(aes(label=person,color=Eigenvector)) +
+    scale_colour_gradient(low = "orange", high = "black")
+```
+
+You can clearly see who are the most important people in **this** network (biased due to my sampling by convenience).
+
+Can this network be disconnected?
+
+If so, we can compute the minimum number of nodes that must be removed to disconnect the network (create at least two components):
+
+```{r, eval=TRUE, message=FALSE}
+vertex_connectivity(actors)
+```
+
+Who is the node with the power to break the network?
+
+```{r, eval=TRUE, message=FALSE}
+(TheCut=articulation_points(actors))
+```
+We just need to take one of those, and network will disconnect.
+
+The bridges tell you something related:
+
+```{r, eval=TRUE, message=FALSE}
+(TheBridge=bridges(actors))
+```
+
+We can highlight those *articulation nodes*:
+
+```{r, eval=TRUE, message=FALSE, fig.heigth=12, fig.width=10}
+allSizes=rep(10,vcount(actors))
+allSizes[TheCut]=40
+
+V(actors)$size=allSizes 
+
+plot.igraph(actors,layout = layout.fruchterman.reingold,
+             vertex.color = 'yellow',
+             edge.color='lightblue',vertex.shape='sphere')
+```
+We can highlight the *bridges* too:
+
+```{r, fig.heigth=12, fig.width=10}
+E(actors)$color=ifelse(E(actors)%in%TheBridge,
+                               'red','grey80')
+                               
+plot.igraph(actors,layout = layout.fruchterman.reingold,
+             vertex.color = 'yellow',
+             edge.color=E(actors)$color,vertex.shape='sphere')
+```
+You may go to CANVAS to see the Homework instructions.
