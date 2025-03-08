@@ -149,19 +149,6 @@ plot.igraph(actors,
 mean_distance(actors)
 ```
 
--   Transitivity: How probable is that two vertices with a common vertex, are also connected?
-
-```{r, eval=TRUE, message=FALSE}
-transitivity(actors)
-```
-
--   Assortativity (degree): it is a measure to see if nodes are connecting to other nodes similar in degree. Closer to 1 means higher assortativity, closer to -1 diassortativity; while 0 is no assortitivity.
-
-```{r, eval=TRUE, message=FALSE}
-assortativity_degree(actors)
-```
-
-Then, there is no tendency for actors with many connections to connect with other actor with many connections. In fact, there is a very small tendency to connect among node with opposite levels of degree.
 
 Let's turn our attention to the nodes and their roles in the network.
 
