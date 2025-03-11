@@ -303,4 +303,22 @@ plot.igraph(actors,layout = layout.fruchterman.reingold,
              vertex.color = 'yellow',
              edge.color=E(actors)$color,vertex.shape='sphere')
 ```
+
+## and for Directed Graphs?
+
+Several of the above
+
+
+```{r, eval=TRUE, message=FALSE}
+rm(list = ls())
+GitLink2='https://github.com/DACSS-CSSmeths/Networks_intro/raw/refs/heads/main/MyGraphs/css_dG.graphml'
+dG=read_graph(GitLink2,format='graphml')
+```
+
+```{r}
+plot(dG)
+```
+
+
+
 You may go to CANVAS to see the Homework instructions.
