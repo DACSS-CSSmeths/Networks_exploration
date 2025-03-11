@@ -6,6 +6,10 @@
 
 The [previous tutorial](https://dacss-cssmeths.github.io/Networks_intro/) we learned to prepare a network from a bipartite structure.
 
+```{r klippy, echo=FALSE, include=TRUE}
+klippy::klippy(position = c('top', 'right'))
+```
+
 This is the link to that network from a GitHub repo:
 
 ```{r, eval=TRUE, message=FALSE}
