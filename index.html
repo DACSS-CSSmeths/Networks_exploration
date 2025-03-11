@@ -371,7 +371,7 @@ actors=read_graph(GitLink,format=&#39;graphml&#39;)</code></pre>
 <p>The <strong>actors</strong> object has the network data, let’s get
 some information:</p>
 <pre class="r"><code>summary(actors)</code></pre>
-<pre><code>## IGRAPH 1209368 U-W- 11 14 -- 
+<pre><code>## IGRAPH 65ed5c6 U-W- 11 14 -- 
 ## + attr: wonOscar (v/n), color (v/c), bipartite (v/n), id (v/c), weight
 ## | (e/n)</code></pre>
 <p>The above results mean:</p>
@@ -461,14 +461,14 @@ other.</p>
 diameter.</p>
 <pre class="r"><code>farthest_vertices(actors)</code></pre>
 <pre><code>## $vertices
-## + 2/11 vertices, named, from 1209368:
+## + 2/11 vertices, named, from 65ed5c6:
 ## [1] Al Pacino      Morgan Freeman
 ## 
 ## $distance
 ## [1] 6</code></pre>
 <p>This is the geodesic between both nodes:</p>
 <pre class="r"><code>get_diameter(actors)</code></pre>
-<pre><code>## + 7/11 vertices, named, from 1209368:
+<pre><code>## + 7/11 vertices, named, from 65ed5c6:
 ## [1] Al Pacino         Robin Williams    Matt Damon        Tom Hanks        
 ## [5] Leonardo DiCaprio Jack Nicholson    Morgan Freeman</code></pre>
 <p>You can see that here:</p>
@@ -623,12 +623,12 @@ removed to disconnect the network (create at least two components):</p>
 <pre><code>## [1] 1</code></pre>
 <p>Who is the node with the power to break the network?</p>
 <pre class="r"><code>(TheCut=articulation_points(actors))</code></pre>
-<pre><code>## + 3/11 vertices, named, from 1209368:
+<pre><code>## + 3/11 vertices, named, from 65ed5c6:
 ## [1] Robin Williams Matt Damon     Tom Hanks</code></pre>
 <p>We just need to take one of those, and network will disconnect.</p>
 <p>The bridges tell you something related:</p>
 <pre class="r"><code>(TheBridge=bridges(actors))</code></pre>
-<pre><code>## + 2/14 edges from 1209368 (vertex names):
+<pre><code>## + 2/14 edges from 65ed5c6 (vertex names):
 ## [1] Robin Williams--Matt Damon Matt Damon    --Tom Hanks</code></pre>
 <p>We can highlight those <em>articulation nodes</em>:</p>
 <pre class="r"><code>allSizes=rep(10,vcount(actors))
