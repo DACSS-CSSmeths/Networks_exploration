@@ -33,7 +33,10 @@ The above results mean:
 -   **11**:nodes
 -   **14**:edges
 
-You also see the attributes for nodes (**v**ertices): \* (v/n) is a **n**umeric attribute for the nodes, here *wonOscar* and *bipartite*. \* (v/c) is a **c**haracter or string attribute for the nodes, here *id*.
+You also see the attributes for nodes (**v**ertices): 
+
+* (v/n) is a **n**umeric attribute for the nodes, here *wonOscar* and *bipartite*. 
+* (v/c) is a **c**haracter or string attribute for the nodes, here *id*.
 
 Let's see one of them:
 
@@ -41,7 +44,9 @@ Let's see one of them:
 V(actors)$wonOscar
 ```
 
-You also see the attributes for **e**dges: \* (e/n) is a **n**umeric attribute for the edges, here *weight*.
+You also see the attributes for **e**dges: 
+
+* (e/n) is a **n**umeric attribute for the edges, here *weight*.
 
 Let's see that one too:
 
@@ -70,13 +75,12 @@ set.seed(111) # use this to get same results as me
 
 plot.igraph(actors,
             edge.color = E(actors)$weight,
-            edge.heigth = E(actors)$weight,
             vertex.color=V(actors)$wonOscar)
 
             
 ```
 
-Notice that the colors and heigth were chosen from the own R defaults.
+Notice that the colors and weigth were chosen from the own R defaults.
 
 ## 1. Exploring the Network as a whole
 
@@ -211,19 +215,13 @@ c.  The **betweeness** of a vertex will tell you how critical a vertex is to con
 sort(betweenness(actors,normalized=T))
 ```
 
-d.  The **eigenvector** of a vertex will tell you how 'elitist' a vertex is; that is, the higher this value means a highly connected vertex is connected to other highly connected vertices.
-
-```{r}
-sort(eigen_centrality (actors,scale=F)$vector)
-```
 
 ```{r, fig.heigth=12, fig.width=10}
 set.seed(123)
-TheV=c('Al Pacino', 'Robert De Niro')
+TheV=c('Matt Damon', 'Tom Hanks')
 neigh.nodes <- neighbors(actors, V(actors)[name%in%TheV])
 # Set colors to plot the neighbors:
 vcol <- rep("grey80", vcount(actors))
-vcol[neigh.nodes] <- "orange"
 vcol[V(actors)$name%in%TheV] <- "red"
 
 
@@ -237,10 +235,9 @@ rounding=2
 degr=round(degree(actors,normalized=T),rounding)
 close=round(closeness(actors,normalized=T),rounding)
 betw=round(betweenness(actors,normalized=T),rounding)
-eigv=round(eigen_centrality (actors,scale=F)$vector,rounding)
 
-DFCentrality=as.data.frame(cbind(degr,close,betw,eigv),stringsAsFactors = F)
-names(DFCentrality)=c('Degree','Closeness','Betweenness','Eigenvector')
+DFCentrality=as.data.frame(cbind(degr,close,betw),stringsAsFactors = F)
+names(DFCentrality)=c('Degree','Closeness','Betweenness')
 ```
 
 ```{r, eval=TRUE, message=FALSE}
@@ -253,42 +250,44 @@ head(DFCentrality)
 library(ggplot2)
 library(ggrepel)
 ggplot(DFCentrality, aes(x=Betweenness, y=Closeness)) + 
-    theme_classic() + geom_point(aes(size=log(1+Degree))) +
-    geom_text_repel(aes(label=person,color=Eigenvector)) +
-    scale_colour_gradient(low = "orange", high = "black")
+    theme_classic() + geom_point() +
+    geom_label_repel(aes(label=person,fill=Degree),color='white') +
+    scale_fill_gradient2(low = "red", mid='grey50',high ="darkgreen",
+                           midpoint = 0.3)
 ```
 
 You can clearly see who are the most important people in **this** network (biased due to my sampling by convenience).
 
 Can this network be disconnected?
 
-If so, we can compute the minimum number of nodes that must be removed to disconnect the network (create at least two components):
+We know it is connected (*is.connected()* above gave es TRUE). But, we can compute the minimum number of nodes that must be removed to disconnect the network (create at least two components):
 
 ```{r, eval=TRUE, message=FALSE}
 vertex_connectivity(actors)
 ```
+So, the whole network can be splitted if one actor goes away.
 
-Who is the node with the power to break the network?
+Who is the node that can break the network?
 
 ```{r, eval=TRUE, message=FALSE}
 (TheCut=articulation_points(actors))
 ```
-We just need to take one of those, and network will disconnect.
+We just need to take ONE of those, and the network will split.
 
-The bridges tell you something related:
+We can also find out the edge that is keeping the network from splitting:
 
 ```{r, eval=TRUE, message=FALSE}
 (TheBridge=bridges(actors))
 ```
 
-We can highlight those *articulation nodes*:
+We can highlight those *nodes*:
 
 ```{r, eval=TRUE, message=FALSE, fig.heigth=12, fig.width=10}
 allSizes=rep(10,vcount(actors))
 allSizes[TheCut]=40
 
 V(actors)$size=allSizes 
-
+set.seed(123)
 plot.igraph(actors,layout = layout.fruchterman.reingold,
              vertex.color = 'yellow',
              edge.color='lightblue',vertex.shape='sphere')
@@ -300,25 +299,160 @@ E(actors)$color=ifelse(E(actors)%in%TheBridge,
                                'red','grey80')
                                
 plot.igraph(actors,layout = layout.fruchterman.reingold,
-             vertex.color = 'yellow',
-             edge.color=E(actors)$color,vertex.shape='sphere')
+             vertex.color = 'yellow',edge.width=4,vertex.shape='sphere')
 ```
 
-## and for Directed Graphs?
+## And the Directed Graphs?
 
-Several of the above
+The centrality measures are applied differently to directed edges. In particular, we can use those measures to compute the INs and OUTs, that is, a measure based on what links are coming out from a node, or into a node. 
+
+Let me prepare a graph from two tables as we did in Python, now in R (igraph):
 
 
-```{r, eval=TRUE, message=FALSE}
-rm(list = ls())
-GitLink2='https://github.com/DACSS-CSSmeths/Networks_intro/raw/refs/heads/main/MyGraphs/css_dG.graphml'
-dG=read_graph(GitLink2,format='graphml')
+```{r}
+library(rio)
+
+edges=import('https://github.com/DACSS-CSSmeths/Networks_exploration/raw/refs/heads/main/data/presidents_2020_twitter.xlsx',which='edges')
+nodes=import('https://github.com/DACSS-CSSmeths/Networks_exploration/raw/refs/heads/main/data/presidents_2020_twitter.xlsx',which='attributes')
+```
+
+The nodes are presidents in the Americas in the year 2020 (some basic attributes are available). The edges are show if a president follows another on Twitter. 
+
+Igraph can use both data frames to create a network like this:
+
+```{r}
+presis <- graph_from_data_frame(d=edges, vertices=nodes, directed=T)
+#check
+summary(presis)
+```
+Take a look:
+
+```{r,fig.width=10}
+set.seed(221)
+plot(presis,vertex.size=8,edge.arrow.size=.2,layout=layout_with_fr,vertex.label.cex=0.5)
+```
+One detail you see above is that there are several nodes connected, and there is a pair of isolates. Then, this network is disconnected:
+
+```{r}
+is_connected(presis)
+```
+Usually, when this happens, you have a _big_ component and other smaller components, and even isolates (as it is the case here). We will keep the big component, generally known as the **giant component**. There are two ways of doing that here:
+
+a. We get rid of isolates: This is NOT a general solution, and only works in cases like this, where the giant component is surrounded by isolates.
+
+```{r}
+isolates = which(degree(presis,mode='in') + degree(presis,mode='out')==0 )
+presis_noIsolates = delete_vertices(presis, isolates)
+## result
+summary(presis_noIsolates)
+```
+The new network looks as expected:
+
+```{r,fig.width=10}
+set.seed(221)
+plot(presis_noIsolates,vertex.size=8,edge.arrow.size=.2,layout=layout_with_fr,vertex.label.cex=0.5)
+```
+
+
+b. Keep the giant component: This is a general solution. To make things easy, please install **CINNA**. Use it like this:
+
+```{r}
+presis_BIG=CINNA::giant_component_extract(presis)
+# result
+summary(presis_BIG)
+```
+Notice that *presis_BIG* is not a network, It is a list, the first element is the network, the second the edgelist of the network. Let's check the network to confirm the two isolates are not included.
+
+```{r}
+summary(presis_BIG[[1]])
+```
+Redrawing, this time labelling with country of the president:
+
+```{r,fig.width=10}
+presis_giant=presis_BIG[[1]]
+set.seed(221)
+plot(presis_giant,vertex.size=12,edge.arrow.size=.2,layout=layout_with_fr,
+     vertex.color='white',
+     vertex.label=V(presis_giant)$country,
+     vertex.label.cex=0.5)
+```
+
+Let's use this graph to compute the centrality measures:
+
+```{r}
+# notice In and OUT
+degreeIn=degree(presis_giant,mode='in',normalized = T)
+degreeOut=degree(presis_giant,mode='out',normalized = T)
+closeIn=closeness(presis_giant,mode='in',normalized = T)
+closeOut=closeness(presis_giant,mode='out',normalized = T)
+# no In nor OUT, just 'directed'
+betwD=betweenness(presis_giant,directed=T,normalized = T)
+
+# the data frame
+presisCentrality=as.data.frame(cbind(degreeIn,degreeOut,closeIn,closeOut,betwD))
+presisCentrality
+```
+
+You can also compute the diameter:
+
+```{r}
+get_diameter(presis_giant,directed = TRUE)
+```
+
+Even though you have the giant component, you can still break the network:
+
+```{r}
+(TheBridge=bridges(presis_giant))
 ```
 
 ```{r}
-plot(dG)
+(TheCut=articulation_points(presis_giant))
+```
+```{r, eval=TRUE, message=FALSE, fig.heigth=12, fig.width=10}
+
+set.seed(221)
+allSizes=rep(10,vcount(presis_giant))
+allSizes[TheCut]=40
+
+V(presis_giant)$size=allSizes 
+
+E(presis_giant)$color=ifelse(E(presis_giant)%in%TheBridge,
+                               'red','grey80')
+                               
+plot.igraph(presis_giant,layout = layout.fruchterman.reingold,,
+     vertex.label.cex=0.5,
+             vertex.color = 'yellow',edge.width=4,vertex.shape='sphere')
+```
+
+## LINK ANALYSIS
+
+This analysis is only useful in directed graphs. These measures were born to identify important web pages, based on the visits received by the current page, the previous pages that caused the visit to the current one, and the visit to pages that would come after visiting the current one. In synthesis, high values reveal important nodes, meaning that there should be some good content in those nodes, because in also comes from other important nodes, and will guide you to visit other relevent nodes. We have:
+
+* HUBS and AUTHORITIES: These two work together. If you send links you are a hub, if you receive link you are an authority. HUBS become relevant if they send link to important AUTHORITIES. AUTHORITIES become relevant if they receive links from important HUBS. Of course, in a NON directed graph, those measures are no different.
+
+* PAGE RANK: Page rank simplifies the HUBS and AUTHORITIES in one measure. Then, the higher the values the most important the node in terms of receiving and sending.
+
+Let's compute those values:
+
+```{r}
+Lk_hub=hub_score(presis_giant)$vector
+Lk_auth=authority_score(presis_giant)$vector
+Lk_page=page_rank(presis_giant)$vector
+presis_LINK=as.data.frame(cbind(Lk_hub,Lk_auth,Lk_page))
+presis_LINK
+```
+
+Let's see a plot of Hubs, Authorities, and Page Rank:
+
+```{r, eval=TRUE, message=FALSE, fig.heigth=12, fig.width=10}
+presis_LINK$person=row.names(presis_LINK)
+
+ggplot(presis_LINK, aes(x=Lk_hub, y=Lk_auth)) + 
+    theme_classic() + geom_point() +
+    geom_label_repel(aes(label=person,fill=Lk_page),color='white') +
+    scale_fill_gradient2(low = "red", mid='grey50',high ="darkgreen",
+                           midpoint = 0.05)
 ```
 
 
-
-You may go to CANVAS to see the Homework instructions.
+It is time  go to CANVAS to see the Homework instructions!
