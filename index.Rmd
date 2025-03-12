@@ -360,7 +360,7 @@ plot(presis_noIsolates,vertex.size=8,edge.arrow.size=.2,layout=layout_with_fr,ve
 
 b. Keep the giant component: This is a general solution. To make things easy, please install **CINNA**. Use it like this:
 
-```{r}
+```{r, message=FALSE}
 presis_BIG=CINNA::giant_component_extract(presis)
 # result
 summary(presis_BIG)
@@ -456,6 +456,14 @@ ggplot(presis_LINK, aes(x=Lk_hub, y=Lk_auth)) +
     geom_label_repel(aes(label=person,fill=Lk_page),color='white') +
     scale_fill_gradient2(low = "red", mid='grey50',high ="darkgreen",
                            midpoint = 0.05)
+```
+
+We can export our presidents graph (the original) this way:
+```{r}
+write_graph(
+  presis,
+  'presis.graphml',
+  format ="graphml")
 ```
 
 
